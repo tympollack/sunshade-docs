@@ -1,0 +1,103 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+
+html {
+  scrollbar-gutter: stable;
+}
+
+html > body[data-scroll-locked] {
+  margin-right: 0px !important;
+  --removed-body-scroll-bar-size: 0px !important;
+}
+
+/* ==========================================================================
+   Living Binder Print-Ready Styling
+   Optimized for physical binder printing from Chrome / Edge (Ctrl+P / Cmd+P)
+   ========================================================================== */
+@media print {
+  /* Hide navigation bars, sidebars, TOC, search triggers, and action buttons */
+  header,
+  nav,
+  aside,
+  footer,
+  [data-fd-sidebar],
+  [data-fd-toc],
+  [data-fd-header],
+  [data-fd-nav],
+  #nd-sidebar,
+  #nd-toc,
+  #nd-nav,
+  button[data-search],
+  .fd-sidebar,
+  .fd-toc,
+  .fd-header,
+  nav[aria-label="Table of contents"],
+  nav[aria-label="Breadcrumb"] {
+    display: none !important;
+  }
+
+  /* Expand main page container to full width */
+  html,
+  body {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    font-size: 11pt !important;
+    line-height: 1.5 !important;
+  }
+
+  main,
+  article,
+  #nd-page,
+  .prose {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 1rem !important;
+  }
+
+  /* Page break rules for Living Binder readability */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    break-after: avoid;
+    color: #000000 !important;
+  }
+
+  table,
+  figure,
+  pre,
+  blockquote,
+  .callout,
+  [data-callout] {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Ensure code blocks and tables format cleanly in print */
+  pre {
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    border: 1px solid #e5e7eb !important;
+    background: #f9fafb !important;
+    color: #111827 !important;
+  }
+
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  th, td {
+    border: 1px solid #d1d5db !important;
+    padding: 6px 10px !important;
+  }
+
+  /* Force links to be readable */
+  a {
+    color: #1f2937 !important;
+    text-decoration: underline !important;
+  }
+}

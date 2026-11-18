@@ -1,0 +1,27 @@
+---
+title: Authentication and Single Sign-On
+description: Identity architecture and session sharing across SunShade Systems applications.
+---
+
+SunShade Systems uses a unified identity model. Users log in once through SunShade Hub and securely navigate between all ecosystem applications.
+
+## Domain Model
+
+All production services share the root domain `.sunshade.icu`. Staging services share the root domain `.docs-stag.sunshade.icu` or corresponding `-stag` hostnames.
+
+| Environment | Hub Hostname | App Hostname Pattern |
+| :--- | :--- | :--- |
+| Production | `hub.sunshade.icu` | `*.sunshade.icu` |
+| Staging | `hub-stag.sunshade.icu` | `*-stag.sunshade.icu` |
+
+## Session Sharing
+
+1. **Root Domain Cookie**: The Hub writes a secure, HTTP-only authentication cookie scoped to `.sunshade.icu`.
+2. **Token Verification**: Downstream applications verify the session cookie on incoming requests using public key cryptography or internal session validation.
+3. **Logout Cascade**: Terminating a session at SunShade Hub clears the root cookie, immediately logging the user out across all connected apps.
+
+## Application Responsibilities
+
+- **Do not collect credentials**: Always redirect unauthenticated users to the Hub login route.
+- **Do not duplicate user profiles**: Read user identity and permission claims from the validated session token.
+- **Maintain HTTPS**: Session cookies require secure transport in all hosted environments.

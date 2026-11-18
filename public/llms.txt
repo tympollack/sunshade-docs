@@ -1,0 +1,24 @@
+# SunShade Systems Documentation Catalog
+
+> Root documentation librarian catalog for SunShade Systems (docs.sunshade.icu).
+> Designed for AI coding agents and automated context bundlers.
+
+## Shared Architecture
+
+- [Shared Architecture](https://docs.sunshade.icu/shared-architecture/llms-full.txt): Core platform principles, SunShade Hub SSO, and database boundary invariants.
+
+## Registered Applications
+
+- [Cozy](https://docs.sunshade.icu/cozy/llms-full.txt): Positivity-only behavioral home and micro-space check-in app.
+- [Patchwork](https://docs.sunshade.icu/patchwork/llms-full.txt): Collaborative fabric planning and community workspace application.
+- [Votary](https://docs.sunshade.icu/votary/llms-full.txt): Intentional ritual tracking and personal habit accountability system.
+- [Dart-Up](https://docs.sunshade.icu/dart-up/llms-full.txt): Precision target practice and competitive tournament scoring engine.
+- [SunShade Tracker](https://docs.sunshade.icu/sunshade-tracker/llms-full.txt): Central operational telemetry and audit logging dashboard.
+- [SunShade Hub](https://docs.sunshade.icu/sunshade-hub/llms-full.txt): Central authentication, user accounts, and single sign-on authority.
+- [SunShade DB Platform](https://docs.sunshade.icu/sunshade-db-platform/llms-full.txt): Shared PostgreSQL platform schemas, connection pooling, and multi-tenant invariants.
+
+## Instructions for AI Agents
+
+1. Fetch your target application context from `https://docs.sunshade.icu/{project}/llms-full.txt`.
+2. Every application bundle automatically includes shared authentication and database boundaries.
+3. Respect all database migration laws: client applications never execute migrations against shared schemas.

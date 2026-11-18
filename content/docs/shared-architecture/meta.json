@@ -1,0 +1,8 @@
+{
+  "title": "Shared Architecture",
+  "pages": [
+    "index",
+    "auth-sso",
+    "database-boundaries"
+  ]
+}

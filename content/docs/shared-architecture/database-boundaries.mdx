@@ -1,0 +1,24 @@
+---
+title: Database Boundaries and Invariants
+description: Data layer rules, schema ownership, and migration boundaries for SunShade applications.
+---
+
+SunShade Systems protects data integrity through strict database boundaries. Central schemas and shared platform data live exclusively in `sunshade-db-platform`.
+
+## Database Migration Laws
+
+1. **No Migrations in Client or Docs Repos**: Only `sunshade-db-platform` runs database schema migrations. The documentation portal (`sunshade-docs`) is a static edge service and must never contain database migration files.
+2. **Schema Separation**: Each product domain owns an isolated schema or tenant partition. Applications cannot alter tables belonging to other products.
+3. **Controlled Access**: Products interact with shared platform state through typed RPC functions and vetted service clients.
+
+## Multi-Tenant Isolation
+
+- Every shared query must scope access with an explicit tenant or user identifier.
+- Row-Level Security policies in PostgreSQL enforce tenant isolation at the database engine level.
+- Service keys remain restricted to backend services and never appear in client bundles.
+
+## Environment Policy
+
+- Production databases connect strictly through secure connection pooling.
+- Staging databases reflect production schemas without copying sensitive customer records.
+- Staging hostnames use the `-stag` naming standard to prevent accidental cross-talk.

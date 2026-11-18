@@ -1,0 +1,3 @@
+# Cloudflare Pages Redirects & Fallbacks
+# Ensure /llms.txt is served directly with 200
+/llms.txt    /llms.txt    200

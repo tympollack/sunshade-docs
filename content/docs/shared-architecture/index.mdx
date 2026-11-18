@@ -1,0 +1,19 @@
+---
+title: Shared Architecture
+description: Core platform principles, authentication boundaries, and data invariants across SunShade Systems.
+---
+
+SunShade applications share a common operational core. This design guarantees consistent security, reliable identity, and clean domain boundaries across every product.
+
+## Core Invariants
+
+Every application in the ecosystem must follow three platform rules:
+
+1. **Central Identity**: All user accounts authenticate through SunShade Hub. Applications never store passwords or run independent user auth tables.
+2. **Platform Database Boundaries**: Shared platform schemas live in `sunshade-db-platform`. Applications access tenant data through authorized service boundaries and never run direct database migrations against shared tables.
+3. **Documentation Ownership**: Each product repository authors markdown in its `/docs` folder. The central `sunshade-docs` portal pulls these guides via Git submodules.
+
+## Shared System Areas
+
+- [Single Sign-On (SSO)](/docs/shared-architecture/auth-sso): Unified session management and cross-domain authentication across `.sunshade.icu`.
+- [Database Boundaries](/docs/shared-architecture/database-boundaries): Schema ownership, multi-tenant isolation, and migration rules.
