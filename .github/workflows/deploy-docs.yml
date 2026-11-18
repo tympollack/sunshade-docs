@@ -34,7 +34,7 @@ jobs:
         run: npm run sync-docs
 
       - name: Check TypeScript types
-        run: npx tsc --noEmit
+        run: npm run types:check
 
       - name: Build Next.js Documentation Portal
         run: npm run build
