@@ -2,9 +2,13 @@ name: Deploy Documentation Portal
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
   pull_request:
-    branches: [main]
+    branches: [main, staging]
+  repository_dispatch:
+    types: [docs-updated, submodule-sync]
+  schedule:
+    - cron: '0 6 * * *'
   workflow_dispatch:
 
 jobs:
@@ -15,11 +19,15 @@ jobs:
       deployments: write
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      SUBMODULES_PAT: ${{ secrets.SUBMODULES_PAT }}
+      TRACKER_API_KEY: ${{ secrets.TRACKER_API_KEY }}
 
     steps:
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
         with:
+          token: ${{ secrets.SUBMODULES_PAT || github.token }}
           submodules: recursive
           fetch-depth: 0
 
@@ -33,18 +41,44 @@ jobs:
         run: npm ci
 
       - name: Sync and validate documentation submodules
-        run: npm run sync-docs
+        run: npm run sync-docs -- --strict
+
+      - name: Generate Living Binder commit ledger
+        run: npm run binder:index
 
       - name: Check TypeScript types
         run: npm run types:check
 
-      - name: Build Next.js Documentation Portal
+      - name: Run automated tests
+        run: npm test
+
+      - name: Build static Next.js Documentation Portal
         run: npm run build
 
-      - name: Deploy to Cloudflare Pages
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && env.CLOUDFLARE_API_TOKEN != ''
+      - name: Check Living Binder reprint drift
+        if: github.event_name != 'pull_request'
+        run: node scripts/check-binder-drift.mjs --notify-tracker
+
+      - name: Deploy Production to Cloudflare Pages (main)
+        if: (github.ref == 'refs/heads/main' || github.event_name == 'repository_dispatch' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.event_name != 'pull_request' && env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy .next --project-name=sunshade-docs
+          command: pages deploy out --project-name=sunshade-docs --branch=main
+
+      - name: Deploy Staging to Cloudflare Pages (staging)
+        if: github.ref == 'refs/heads/staging' && github.event_name == 'push' && env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy out --project-name=sunshade-docs --branch=staging
+
+      - name: Deploy PR Preview to Cloudflare Pages
+        if: github.event_name == 'pull_request' && env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy out --project-name=sunshade-docs --branch=pr-${{ github.event.pull_request.number }}

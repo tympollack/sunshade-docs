@@ -33,8 +33,19 @@ html > body[data-scroll-locked] {
   .fd-toc,
   .fd-header,
   nav[aria-label="Table of contents"],
-  nav[aria-label="Breadcrumb"] {
+  nav[aria-label="Breadcrumb"],
+  .no-print {
     display: none !important;
+  }
+
+  [data-binder-stamp] {
+    display: block !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    border: 1.5px solid #111827 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin-bottom: 14pt !important;
   }
 
   /* Expand main page container to full width */

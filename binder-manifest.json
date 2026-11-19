@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "lastPrintedAt": "2026-11-19T15:52:43.671Z",
+  "lastPrintedCommit": "6ea8ee085a107c822255c6646398b2f2705d931c",
+  "printedBy": "Tymz Pollack",
+  "documents": {
+    "index.mdx": {
+      "slug": "/docs",
+      "title": "SunShade Systems Overview",
+      "sha256": "c6a233a4cc67a2aa7acd8510687e262e1fb3062653898b6f4306542787870361",
+      "shortHash": "c6a233a4cc67",
+      "commit": "a7b7fcc9bb8efb8a506b80f85550604525963bd0",
+      "shortCommit": "a7b7fcc",
+      "committedAt": "2026-11-18T11:41:20-05:00",
+      "sourceRepo": "sunshade-docs",
+      "lastPrintedAt": "2026-11-19T15:52:43.671Z"
+    },
+    "shared-architecture/auth-sso.mdx": {
+      "slug": "/docs/shared-architecture/auth-sso",
+      "title": "Authentication and Single Sign-On",
+      "sha256": "513d78f77c566dc6d1a701f81bf0648b07f63b1075cb2fdef4cc9bb500d425a0",
+      "shortHash": "513d78f77c56",
+      "commit": "a7b7fcc9bb8efb8a506b80f85550604525963bd0",
+      "shortCommit": "a7b7fcc",
+      "committedAt": "2026-11-18T11:41:20-05:00",
+      "sourceRepo": "sunshade-docs",
+      "lastPrintedAt": "2026-11-19T15:52:43.671Z"
+    },
+    "shared-architecture/database-boundaries.mdx": {
+      "slug": "/docs/shared-architecture/database-boundaries",
+      "title": "Database Boundaries and Invariants",
+      "sha256": "8214d95683c02659a4497004b766d916f06b5b1c33d42e83caa955c3c6583dd1",
+      "shortHash": "8214d95683c0",
+      "commit": "a7b7fcc9bb8efb8a506b80f85550604525963bd0",
+      "shortCommit": "a7b7fcc",
+      "committedAt": "2026-11-18T11:41:20-05:00",
+      "sourceRepo": "sunshade-docs",
+      "lastPrintedAt": "2026-11-19T15:52:43.671Z"
+    },
+    "shared-architecture/index.mdx": {
+      "slug": "/docs/shared-architecture",
+      "title": "Shared Architecture",
+      "sha256": "f4d018c2e9d70f0cf467cedacf9542c253ff1913059a91bb9966877e9e788dcd",
+      "shortHash": "f4d018c2e9d7",
+      "commit": "a7b7fcc9bb8efb8a506b80f85550604525963bd0",
+      "shortCommit": "a7b7fcc",
+      "committedAt": "2026-11-18T11:41:20-05:00",
+      "sourceRepo": "sunshade-docs",
+      "lastPrintedAt": "2026-11-19T15:52:43.671Z"
+    }
+  }
+}

@@ -1,17 +1,35 @@
 #!/usr/bin/env node
 import { execSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { join, relative, resolve, basename, extname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, relative } from 'node:path';
+import {
+  APPS_DOCS_DIR,
+  ROOT_DIR,
+  extractFallbackTitle,
+  getMarkdownFiles,
+} from './lib/docs-utils.mjs';
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const ROOT_DIR = resolve(__dirname, '..');
-const APPS_DIR = join(ROOT_DIR, 'content', 'docs', 'apps');
 const GITMODULES_FILE = join(ROOT_DIR, '.gitmodules');
+const strictMode = process.argv.includes('--strict') || process.env.CI === 'true';
 
 console.log('[sync-submodules] Starting documentation submodule synchronization...');
 
-// 1. Sync & update Git submodules if .gitmodules exists and has content
+// 1. Configure private submodule authentication in CI if SUBMODULES_PAT is provided
+const submodulesPat = process.env.SUBMODULES_PAT || process.env.GH_SUBMODULE_TOKEN || '';
+if (submodulesPat) {
+  try {
+    const authHeader = Buffer.from(`x-access-token:${submodulesPat}`).toString('base64');
+    execSync(
+      `git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ${authHeader}"`,
+      { cwd: ROOT_DIR, stdio: 'ignore' }
+    );
+    console.log('[sync-submodules] Configured GitHub token credential header for private submodules.');
+  } catch (err) {
+    console.warn('[sync-submodules] Warning: Could not configure submodule credential header:', err.message);
+  }
+}
+
+// 2. Sync & update Git submodules if .gitmodules exists and has content
 if (existsSync(GITMODULES_FILE)) {
   const gitmodulesContent = readFileSync(GITMODULES_FILE, 'utf8').trim();
   if (gitmodulesContent.length > 0) {
@@ -21,6 +39,10 @@ if (existsSync(GITMODULES_FILE)) {
       execSync('git submodule update --init --remote --recursive', { cwd: ROOT_DIR, stdio: 'inherit' });
       console.log('[sync-submodules] Git submodules updated successfully.');
     } catch (err) {
+      if (strictMode) {
+        console.error('[sync-submodules] Error: Git submodule synchronization failed in strict mode:', err.message);
+        process.exit(1);
+      }
       console.warn('[sync-submodules] Warning: Git submodule command failed or incomplete:', err.message);
     }
   } else {
@@ -30,34 +52,14 @@ if (existsSync(GITMODULES_FILE)) {
   console.log('[sync-submodules] No .gitmodules found. Skipping Git submodule update.');
 }
 
-// 2. Scan content/docs/apps/*/ for missing frontmatter titles
-function getMarkdownFiles(dir) {
-  const results = [];
-  if (!existsSync(dir)) return results;
-
-  const entries = readdirSync(dir, { withFileTypes: true });
-  for (const entry of entries) {
-    const fullPath = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      results.push(...getMarkdownFiles(fullPath));
-    } else if (entry.isFile()) {
-      const ext = extname(entry.name).toLowerCase();
-      if (ext === '.md' || ext === '.mdx') {
-        results.push(fullPath);
-      }
-    }
-  }
-  return results;
-}
-
-if (existsSync(APPS_DIR)) {
-  const mdFiles = getMarkdownFiles(APPS_DIR);
+// 3. Scan content/docs/apps/*/ for missing frontmatter titles
+if (existsSync(APPS_DOCS_DIR)) {
+  const mdFiles = getMarkdownFiles(APPS_DOCS_DIR);
   console.log(`[sync-submodules] Checking frontmatter for ${mdFiles.length} markdown file(s) in apps directory...`);
 
   for (const filePath of mdFiles) {
     const relPath = relative(ROOT_DIR, filePath).replace(/\\/g, '/');
     const content = readFileSync(filePath, 'utf8');
-
     const frontmatterMatch = content.match(/^---\s*\r?\n([\s\S]*?)\r?\n---/);
 
     if (frontmatterMatch) {
@@ -79,29 +81,6 @@ if (existsSync(APPS_DIR)) {
       console.log(`[sync-submodules] Injected YAML frontmatter with title "${fallbackTitle}" into ${relPath}`);
     }
   }
-}
-
-function extractFallbackTitle(content, filePath) {
-  // First check for a markdown level-1 heading (# Title)
-  const headingMatch = content.match(/^#\s+(.+)$/m);
-  if (headingMatch) {
-    return headingMatch[1].trim().replace(/["\\]/g, '');
-  }
-
-  // Fallback to formatted filename
-  const rawName = basename(filePath, extname(filePath));
-  if (rawName.toLowerCase() === 'index' || rawName.toLowerCase() === 'readme') {
-    const parentDir = basename(resolve(filePath, '..'));
-    return formatName(parentDir);
-  }
-  return formatName(rawName);
-}
-
-function formatName(str) {
-  return str
-    .replace(/[-_]+/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase())
-    .trim();
 }
 
 console.log('[sync-submodules] Submodule synchronization and validation completed successfully.');

@@ -27,24 +27,39 @@ sunshade-docs/
 │           └── .gitkeep
 ├── public/
 │   ├── _redirects                      # SPA/Cloudflare Pages fallback & clean .txt headers
-│   ├── _headers                        # CORS & text/plain; charset=utf-8 headers for llms.txt routes
+│   ├── _headers                        # CORS, JSON, & no-cache headers for llms.txt and binder-index.json
+│   ├── binder-index.json               # Build-time commit & SHA-256 ledger for Living Binder QR verification
 │   └── llms.txt                        # Root Librarian Catalog (< 4,000 tokens, 15-word summaries + links)
 ├── scripts/
+│   ├── lib/docs-utils.mjs              # Shared markdown, hashing, and submodule git metadata helpers
 │   ├── sync-submodules.mjs             # Initializes/updates all Git Submodules and validates frontmatter
-│   └── add-project-submodule.mjs       # Helper CLI: `npm run docs:add -- --repo <git-url> --slug <slug>`
+│   ├── add-project-submodule.mjs       # Helper CLI: `npm run docs:add -- --repo <git-url> --slug <slug>`
+│   ├── build-binder-index.mjs          # Generates public/binder-index.json commit ledger
+│   ├── check-binder-drift.mjs          # Detects printed binder drift and alerts SunShade Tracker
+│   ├── mark-binder-printed.mjs         # Stamps printed baseline hashes into binder-manifest.json
+│   └── provision-cloudflare-pages.mjs  # Idempotent Cloudflare Pages project & custom domain setup
 ├── src/
 │   ├── app/
-│   │   ├── layout.tsx                  # Root layout with Fumadocs RootProvider + print-friendly CSS rules
+│   │   ├── layout.tsx                  # Root layout with Fumadocs RootProvider (static search)
 │   │   ├── (home)/
-│   │   │   └── page.tsx                # Landing page linking to Human Docs, Living Binder Print View, & llms.txt
+│   │   │   └── page.tsx                # Landing page linking to Human Docs, Binder Verifier, & llms.txt
+│   │   ├── binder/
+│   │   │   └── verify/page.tsx         # Static /binder/verify QR currency verification route
 │   │   ├── docs/
 │   │   │   └── [[...slug]]/
-│   │   │       └── page.tsx            # Fumadocs MDX page renderer
+│   │   │       └── page.tsx            # Fumadocs MDX page renderer with <BinderPrintHeader />
 │   │   └── [project]/
 │   │       └── llms-full.txt/
-│   │           └── route.ts            # Dynamic scoped AI context bundler (App Docs + Shared Architecture)
+│   │           └── route.ts            # Static-exported scoped AI context bundle (App Docs + Shared Arch)
+│   ├── components/
+│   │   ├── binder-print-header.tsx     # Scannable QR stamp header for printed Living Binder sheets
+│   │   └── binder-verifier.tsx         # Client currency verifier comparing QR stamps to /binder-index.json
 │   └── lib/
+│       ├── binder.ts                   # Pure Living Binder verification & URL helpers
+│       ├── binder-server.ts            # Server-side binder-index.json loader
 │       └── source.ts                   # Fumadocs MDX loader configuration
+├── binder-manifest.json                # Last-printed Living Binder baseline hashes & commit metadata
+├── wrangler.jsonc                      # Cloudflare Pages static output config (`out/`)
 ├── AGENTS.md                           # Ecosystem rules for Devin/Cursor/Claude agents
 ├── .env.example
 ├── package.json
@@ -78,8 +93,33 @@ npm run dev
 # Run type check
 npx tsc --noEmit
 
-# Build for production
+# Run automated tests
+npm test
+
+# Build static export (`out/`) for Cloudflare Pages
 npm run build
+
+# Check whether physical Living Binder printouts have drifted from docs
+npm run binder:check
+
+# Stamp current docs as printed in binder-manifest.json
+npm run binder:mark-printed
+```
+
+---
+
+## Cloudflare Pages & CI/CD Setup
+
+The portal exports purely static assets to `out/` (`output: 'export'`). Configure these GitHub Actions secrets in repository settings:
+
+- `CLOUDFLARE_API_TOKEN` & `CLOUDFLARE_ACCOUNT_ID`: Required for deploying `out/` to Cloudflare Pages (`sunshade-docs`).
+- `SUBMODULES_PAT`: Personal Access Token with `repo` read access so `actions/checkout` and `sync-submodules.mjs` can pull private repository `/docs` submodules.
+- `TRACKER_API_KEY`: Optional SunShade Tracker API bearer token so CI automatically creates/updates `TASK-DOCS-BINDER-REPRINT-ALERT` when printed binder drift is detected.
+
+To provision the Cloudflare Pages project and bind `docs.sunshade.icu` + `docs-stag.sunshade.icu`:
+
+```bash
+node scripts/provision-cloudflare-pages.mjs
 ```
 
 ---
