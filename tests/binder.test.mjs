@@ -7,10 +7,12 @@ import { afterEach, describe, it } from 'node:test';
 import {
   computeSha256,
   filePathToDocSlug,
+  readBinderManifest,
 } from '../scripts/lib/docs-utils.mjs';
 import { generateBinderIndex } from '../scripts/build-binder-index.mjs';
-import { detectBinderDrift } from '../scripts/check-binder-drift.mjs';
+import { detectBinderDrift, syncTrackerAlert } from '../scripts/check-binder-drift.mjs';
 import { stampBinderManifest } from '../scripts/mark-binder-printed.mjs';
+import { getContentType, resolveStaticFile } from '../scripts/serve-static.mjs';
 import {
   buildVerifyUrl,
   normalizeDocSlug,
@@ -159,6 +161,87 @@ describe('Living Binder manifest, drift detection, and index generation', () => 
     assert.ok(index.documents['/docs']);
     assert.ok(index.documents['/docs/shared-architecture/auth-sso']);
     assert.equal(index.documents['/docs/shared-architecture/auth-sso'].title, 'Auth SSO');
+  });
+
+  it('does not overwrite manifest when --only matches zero documents', () => {
+    const dir = createTempDocsWorkspace();
+    const manifestPath = join(dir, 'binder-manifest.json');
+
+    stampBinderManifest({
+      rootDir: dir,
+      manifestPath,
+      printedBy: 'initial-operator',
+      printedAt: '2026-11-19T10:00:00.000Z',
+    });
+
+    const failedStamp = stampBinderManifest({
+      rootDir: dir,
+      manifestPath,
+      only: 'nonexistent/page.mdx',
+      printedBy: 'failed-operator',
+      printedAt: '2026-11-19T11:00:00.000Z',
+    });
+
+    assert.equal(failedStamp.stampedCount, 0);
+    const persisted = readBinderManifest(manifestPath);
+    assert.equal(persisted.printedBy, 'initial-operator');
+    assert.equal(persisted.lastPrintedAt, '2026-11-19T10:00:00.000Z');
+  });
+
+  it('catches Tracker fetch failures in syncTrackerAlert without throwing', async () => {
+    const prevKey = process.env.TRACKER_API_KEY;
+    const prevFetch = globalThis.fetch;
+    process.env.TRACKER_API_KEY = 'test-key';
+    globalThis.fetch = async () => {
+      throw new Error('network unreachable');
+    };
+
+    try {
+      await assert.doesNotReject(() =>
+        syncTrackerAlert({
+          hasDrift: true,
+          driftedCount: 1,
+          lastPrintedAt: null,
+          lastPrintedCommit: null,
+          modified: [{ slug: '/docs', filePath: 'index.mdx', baselineHash: 'aaa', currentHash: 'bbb', currentCommit: 'ccc' }],
+          added: [],
+          removed: [],
+        })
+      );
+    } finally {
+      globalThis.fetch = prevFetch;
+      if (prevKey === undefined) delete process.env.TRACKER_API_KEY;
+      else process.env.TRACKER_API_KEY = prevKey;
+    }
+  });
+});
+
+describe('Static export server path resolution', () => {
+  it('resolves extensionless routes, static assets, and blocks traversal', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'sunshade-static-test-'));
+    tempDirs.push(dir);
+    mkdirSync(join(dir, 'api'), { recursive: true });
+    mkdirSync(join(dir, 'docs', 'shared-architecture'), { recursive: true });
+    mkdirSync(join(dir, 'shared-architecture'), { recursive: true });
+
+    writeFileSync(join(dir, 'index.html'), '<html>home</html>');
+    writeFileSync(join(dir, 'docs.html'), '<html>docs</html>');
+    writeFileSync(join(dir, 'docs', 'shared-architecture', 'auth-sso.html'), '<html>sso</html>');
+    writeFileSync(join(dir, 'api', 'search'), '{"type":"simple"}');
+    writeFileSync(join(dir, 'shared-architecture', 'llms-full.txt'), '# Shared');
+
+    assert.equal(resolveStaticFile(dir, '/'), join(dir, 'index.html'));
+    assert.equal(resolveStaticFile(dir, '/docs'), join(dir, 'docs.html'));
+    assert.equal(
+      resolveStaticFile(dir, '/docs/shared-architecture/auth-sso'),
+      join(dir, 'docs', 'shared-architecture', 'auth-sso.html')
+    );
+    const searchFile = resolveStaticFile(dir, '/api/search');
+    assert.equal(searchFile, join(dir, 'api', 'search'));
+    assert.equal(getContentType(searchFile, '/api/search'), 'application/json; charset=utf-8');
+    const llmsFile = resolveStaticFile(dir, '/shared-architecture/llms-full.txt');
+    assert.equal(getContentType(llmsFile, '/shared-architecture/llms-full.txt'), 'text/plain; charset=utf-8');
+    assert.equal(resolveStaticFile(dir, '/../package.json'), null);
   });
 });
 

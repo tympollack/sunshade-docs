@@ -112,7 +112,7 @@ function formatDriftSummary(report) {
   return lines.join('\n');
 }
 
-async function syncTrackerAlert(report) {
+export async function syncTrackerAlert(report) {
   const apiKey = process.env.TRACKER_API_KEY || process.env.SUNSHADE_TRACKER_TOKEN || '';
   if (!apiKey) {
     console.log('[binder:check] No TRACKER_API_KEY configured; skipping Tracker notification.');
@@ -125,87 +125,96 @@ async function syncTrackerAlert(report) {
     'Content-Type': 'application/json',
   };
 
-  const listRes = await fetch(
-    `${TRACKER_BASE_URL.replace(/\/$/, '')}/api/v1/items?project_slug=${encodeURIComponent(TRACKER_PROJECT)}`,
-    { headers }
-  );
-  if (!listRes.ok) {
-    console.warn(`[binder:check] Warning: Tracker lookup failed (${listRes.status}).`);
-    return;
-  }
+  try {
+    const listRes = await fetch(
+      `${TRACKER_BASE_URL.replace(/\/$/, '')}/api/v1/items?project_slug=${encodeURIComponent(TRACKER_PROJECT)}`,
+      { headers }
+    );
+    if (!listRes.ok) {
+      console.warn(`[binder:check] Warning: Tracker lookup failed (${listRes.status}).`);
+      return;
+    }
 
-  const listData = await listRes.json();
-  const existing = Array.isArray(listData?.items)
-    ? listData.items.find((it) => it.external_ref_id === ALERT_REF_ID)
-    : null;
+    const listData = await listRes.json();
+    const existing = Array.isArray(listData?.items)
+      ? listData.items.find((it) => it.external_ref_id === ALERT_REF_ID)
+      : null;
 
-  if (!report.hasDrift) {
-    if (existing && existing.status !== 'complete') {
+    if (!report.hasDrift) {
+      if (existing && existing.status !== 'complete') {
+        const patchRes = await fetch(`${TRACKER_BASE_URL.replace(/\/$/, '')}/api/v1/items`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({
+            id: existing.id,
+            status: 'complete',
+            description: 'Living Binder matches the current documentation baseline.',
+          }),
+        });
+        if (patchRes.ok) {
+          console.log(`[binder:check] Resolved ${ALERT_REF_ID} in SunShade Tracker.`);
+        } else {
+          console.warn(`[binder:check] Warning: Failed to resolve Tracker alert (${patchRes.status}).`);
+        }
+      }
+      return;
+    }
+
+    const description = formatDriftSummary(report);
+    const title = `Reprint Living Binder (${report.driftedCount} doc update${report.driftedCount === 1 ? '' : 's'})`;
+    const metadata = {
+      ...(existing?.metadata || {}),
+      priority: 'Medium',
+      drifted_count: report.driftedCount,
+      last_checked_at: new Date().toISOString(),
+      modified_slugs: report.modified.map((d) => d.slug),
+      added_slugs: report.added.map((d) => d.slug),
+      removed_slugs: report.removed.map((d) => d.slug),
+    };
+
+    if (existing) {
       const patchRes = await fetch(`${TRACKER_BASE_URL.replace(/\/$/, '')}/api/v1/items`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify({
           id: existing.id,
-          status: 'complete',
-          description: 'Living Binder matches the current documentation baseline.',
+          title,
+          description,
+          status: existing.status === 'complete' ? 'not_started' : existing.status,
+          metadata,
         }),
       });
       if (patchRes.ok) {
-        console.log(`[binder:check] Resolved ${ALERT_REF_ID} in SunShade Tracker.`);
+        console.log(`[binder:check] Updated Tracker alert ${ALERT_REF_ID}.`);
+      } else {
+        console.warn(`[binder:check] Warning: Failed to update Tracker alert (${patchRes.status}).`);
+      }
+    } else {
+      const createRes = await fetch(`${TRACKER_BASE_URL.replace(/\/$/, '')}/api/v1/items`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          tenant_slug: TRACKER_TENANT,
+          project_slug: TRACKER_PROJECT,
+          external_ref_id: ALERT_REF_ID,
+          item_type: 'task',
+          status: 'not_started',
+          title,
+          description,
+          metadata,
+        }),
+      });
+      if (createRes.ok) {
+        console.log(`[binder:check] Created Tracker alert ${ALERT_REF_ID}.`);
+      } else {
+        console.warn(`[binder:check] Warning: Failed to create Tracker alert (${createRes.status}).`);
       }
     }
-    return;
-  }
-
-  const description = formatDriftSummary(report);
-  const title = `Reprint Living Binder (${report.driftedCount} doc update${report.driftedCount === 1 ? '' : 's'})`;
-  const metadata = {
-    ...(existing?.metadata || {}),
-    priority: 'Medium',
-    drifted_count: report.driftedCount,
-    last_checked_at: new Date().toISOString(),
-    modified_slugs: report.modified.map((d) => d.slug),
-    added_slugs: report.added.map((d) => d.slug),
-    removed_slugs: report.removed.map((d) => d.slug),
-  };
-
-  if (existing) {
-    const patchRes = await fetch(`${TRACKER_BASE_URL.replace(/\/$/, '')}/api/v1/items`, {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({
-        id: existing.id,
-        title,
-        description,
-        status: existing.status === 'complete' ? 'not_started' : existing.status,
-        metadata,
-      }),
-    });
-    if (patchRes.ok) {
-      console.log(`[binder:check] Updated Tracker alert ${ALERT_REF_ID}.`);
-    } else {
-      console.warn(`[binder:check] Warning: Failed to update Tracker alert (${patchRes.status}).`);
-    }
-  } else {
-    const createRes = await fetch(`${TRACKER_BASE_URL.replace(/\/$/, '')}/api/v1/items`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        tenant_slug: TRACKER_TENANT,
-        project_slug: TRACKER_PROJECT,
-        external_ref_id: ALERT_REF_ID,
-        item_type: 'task',
-        status: 'not_started',
-        title,
-        description,
-        metadata,
-      }),
-    });
-    if (createRes.ok) {
-      console.log(`[binder:check] Created Tracker alert ${ALERT_REF_ID}.`);
-    } else {
-      console.warn(`[binder:check] Warning: Failed to create Tracker alert (${createRes.status}).`);
-    }
+  } catch (err) {
+    console.warn(
+      '[binder:check] Warning: Tracker notification failed:',
+      err instanceof Error ? err.message : String(err)
+    );
   }
 }
 

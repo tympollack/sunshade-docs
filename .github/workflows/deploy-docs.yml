@@ -60,7 +60,7 @@ jobs:
         run: node scripts/check-binder-drift.mjs --notify-tracker
 
       - name: Deploy Production to Cloudflare Pages (main)
-        if: (github.ref == 'refs/heads/main' || github.event_name == 'repository_dispatch' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.event_name != 'pull_request' && env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -68,7 +68,7 @@ jobs:
           command: pages deploy out --project-name=sunshade-docs --branch=main
 
       - name: Deploy Staging to Cloudflare Pages (staging)
-        if: github.ref == 'refs/heads/staging' && github.event_name == 'push' && env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        if: github.ref == 'refs/heads/staging' && github.event_name != 'pull_request' && env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

@@ -2,6 +2,7 @@
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { detectBinderDrift, syncTrackerAlert } from './check-binder-drift.mjs';
 import {
   BINDER_MANIFEST_PATH,
   ROOT_DIR,
@@ -101,7 +102,7 @@ export function stampBinderManifest({
     documents: nextDocuments,
   };
 
-  if (!dryRun) {
+  if (!dryRun && stamped.length > 0) {
     writeBinderManifest(nextManifest, manifestPath);
   }
 
@@ -111,42 +112,6 @@ export function stampBinderManifest({
     stamped,
     dryRun,
   };
-}
-
-async function resolveTrackerReprintAlert() {
-  const apiKey = process.env.TRACKER_API_KEY || process.env.SUNSHADE_TRACKER_TOKEN || '';
-  if (!apiKey) return;
-
-  const baseUrl = (process.env.TRACKER_BASE_URL || 'https://track.sunshade.icu').replace(/\/$/, '');
-  const project = process.env.TRACKER_PROJECT || 'sunshade-docs';
-  const headers = {
-    Authorization: `Bearer ${apiKey}`,
-    Accept: 'application/json',
-    'Content-Type': 'application/json',
-  };
-
-  const listRes = await fetch(`${baseUrl}/api/v1/items?project_slug=${encodeURIComponent(project)}`, { headers });
-  if (!listRes.ok) return;
-
-  const listData = await listRes.json();
-  const alertItem = Array.isArray(listData?.items)
-    ? listData.items.find((it) => it.external_ref_id === 'TASK-DOCS-BINDER-REPRINT-ALERT')
-    : null;
-
-  if (alertItem && alertItem.status !== 'complete') {
-    const patchRes = await fetch(`${baseUrl}/api/v1/items`, {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({
-        id: alertItem.id,
-        status: 'complete',
-        description: 'Living Binder baseline stamped after reprint.',
-      }),
-    });
-    if (patchRes.ok) {
-      console.log('[binder:mark-printed] Marked TASK-DOCS-BINDER-REPRINT-ALERT complete in Tracker.');
-    }
-  }
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
@@ -172,6 +137,10 @@ if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
   }
 
   if (opts.notifyTracker && !opts.dryRun) {
-    await resolveTrackerReprintAlert();
+    const remainingDrift = detectBinderDrift({
+      rootDir: ROOT_DIR,
+      manifestPath: BINDER_MANIFEST_PATH,
+    });
+    await syncTrackerAlert(remainingDrift);
   }
 }

@@ -6,7 +6,7 @@
     "prebuild": "npm run sync-docs && npm run binder:index",
     "build": "next build",
     "dev": "next dev",
-    "start": "next start",
+    "start": "node scripts/serve-static.mjs",
     "sync-docs": "node scripts/sync-submodules.mjs",
     "docs:add": "node scripts/add-project-submodule.mjs",
     "binder:index": "node scripts/build-binder-index.mjs",

@@ -24,7 +24,7 @@ This repository is built with **Next.js (App Router)** and **Fumadocs MDX**.
 
 5. **AI "Catalog" Pattern:**
    - Root librarian index is located at `public/llms.txt`.
-   - Application context bundles are dynamically rendered at `/[project]/llms-full.txt`. Every application bundle concatenates `content/docs/shared-architecture/` automatically so agents receive SSO and database rules without ingesting unrelated apps.
+   - Application context bundles are pre-rendered at build time for `/[project]/llms-full.txt`. Every application bundle concatenates `content/docs/shared-architecture/` automatically so agents receive SSO and database rules without ingesting unrelated apps.
 
 6. **Living Binder Print Standard:**
    - Maintain print-friendly CSS rules in `src/app/global.css`. When printed (Ctrl+P), sidebars, headers, search bars, and table of contents must remain hidden, expanding content to full width with page-break avoidance for tables and callouts.
