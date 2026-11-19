@@ -35,7 +35,7 @@ export default function HomePage() {
         </Link>
 
         <Link
-          href="/docs"
+          href="/binder/verify"
           className="group p-6 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600 transition-colors bg-white dark:bg-neutral-900 shadow-xs flex flex-col justify-between"
         >
           <div>
@@ -43,11 +43,11 @@ export default function HomePage() {
               Living Binder View
             </h2>
             <p className="text-sm text-neutral-600 dark:text-neutral-400">
-              Print any page directly with browser print (Ctrl+P). Navigation chrome is automatically hidden.
+              Print any page with its QR verification stamp (Ctrl+P) or scan a printed sheet to check currency.
             </p>
           </div>
           <span className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mt-6 inline-flex items-center gap-1">
-            Print-Ready Guides &rarr;
+            Verify Printed Sheets &rarr;
           </span>
         </Link>
 

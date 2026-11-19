@@ -1,7 +1,27 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve, extname, basename } from 'node:path';
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-static';
+export const revalidate = false;
+
+export async function generateStaticParams(): Promise<Array<{ project: string }>> {
+  const rootDir = process.cwd();
+  const appsDir = join(rootDir, 'content', 'docs', 'apps');
+  const params: Array<{ project: string }> = [{ project: 'shared-architecture' }];
+
+  if (existsSync(appsDir)) {
+    const entries = readdirSync(appsDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const appFiles = getMarkdownFiles(join(appsDir, entry.name));
+      if (appFiles.length > 0) {
+        params.push({ project: entry.name });
+      }
+    }
+  }
+
+  return params;
+}
 
 function getMarkdownFiles(dir: string): string[] {
   const results: string[] = [];
