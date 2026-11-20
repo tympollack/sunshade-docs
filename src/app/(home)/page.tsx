@@ -3,6 +3,14 @@ import Link from 'next/link';
 export default function HomePage() {
   return (
     <main className="flex flex-col items-center justify-center flex-1 px-4 py-16 text-center max-w-5xl mx-auto">
+      <img
+        src="/logo-icon.svg"
+        alt="SunShade Docs"
+        width={72}
+        height={72}
+        className="w-18 h-18 mb-5"
+      />
+
       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 mb-6">
         <span>SunShade Systems Ecosystem</span>
       </div>
